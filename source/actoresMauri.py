@@ -97,7 +97,7 @@ class NaveJusticialista(pilasengine.actores.Nave):
     
         self.pilas = pilas
         self.cipayos = None
-        
+        self.tiempoUltimoChori =0
         self.texto = pilas.actores.Texto()
         self.texto.x= 400
         self.texto.y= 300
@@ -114,11 +114,6 @@ class NaveJusticialista(pilasengine.actores.Nave):
     def disparar(self):
         if self.poder > 0:
             self.poder = self.poder - 1
-        
-        if self.poder == 0:
-            self.municion = MisilInvisible
-            self._habilidades[1]._municion = MisilInvisible
-            self.pilas.colisiones.agregar(self, Chori.dameElChori(self.pilas), agarrar_chori)
             
     def hacer_explotar_al_enemigo(self, mi_disparo, el_enemigo):
         if self.poder > 0:
@@ -143,11 +138,17 @@ class NaveJusticialista(pilasengine.actores.Nave):
     
     def actualizar(self):
         self.texto.texto = "Vida: " + self.vida.__str__()  + " Poder: " +  self.poder.__str__() + " Puntaje: "  + self.puntaje.__str__()
-                 
+           
+        if  time() - self.tiempoUltimoChori > 5:
+            self.pilas.colisiones.agregar(self, Chori.dameElChori(self.pilas), agarrar_chori)     
+            self.tiempoUltimoChori = time()
+                
         if self.poder > 0:
             self.municion = pilasengine.actores.Misil
             self._habilidades[1]._municion = pilasengine.actores.Misil
-             
+        else:
+            self.municion = MisilInvisible
+            self._habilidades[1]._municion = MisilInvisible
         
         ganado = True
         for cipayo in self.cipayos:
@@ -189,11 +190,11 @@ class Chori(pilasengine.actores.Actor):
       
         self.radio_de_colision = 50
         self.x = - self.pilas.widget.width()/2 
-        altoNave = NaveJusticialista.devolverNave().y + self.pilas.widget.height()/2
+        altoNave = NaveJusticialista.devolverNave().y + self.pilas.widget.height()/2 - 100
 
         if(self.pilas.widget.height() - altoNave > altoNave):
-            fin = 0
-            inicio =  int(altoNave)
+            fin = int(altoNave)
+            inicio =  100
         else:
             fin = self.pilas.widget.height()
             inicio = int(altoNave)
