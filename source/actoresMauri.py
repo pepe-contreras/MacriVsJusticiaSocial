@@ -58,7 +58,7 @@ class Macri(pilasengine.actores.Actor):
             self.golpeado = True
             self.agregar_habilidad(self.pilas.habilidades.PuedeExplotarConHumo)
             
-
+                        
 def definir_angulo(actorOrigen,actorDestino):
     dx = distancia(actorOrigen.x,actorDestino.x)
     dy = distancia(actorOrigen.y,actorDestino.y)
@@ -68,13 +68,13 @@ def definir_angulo(actorOrigen,actorDestino):
 
 def distancia(numero1,numero2):
     return numero2 - numero1
-    
+
             
 class NaveJusticialista(pilasengine.actores.Nave):
     '''
     classdocs
     '''
-    MAX_POWER = 20
+    MAX_POWER = 5
     RECHARG_CHORIPAN = 5
     NAVE = None
     
@@ -116,7 +116,7 @@ class NaveJusticialista(pilasengine.actores.Nave):
             self.poder = self.poder - 1
             
     def hacer_explotar_al_enemigo(self, mi_disparo, el_enemigo):
-        if self.poder > 0:
+        if mi_disparo.transparencia == 0:
             pilasengine.actores.Nave.hacer_explotar_al_enemigo(self, mi_disparo, el_enemigo)
                      
     def definir_enemigos(self, grupo, cuando_elimina_enemigo=None):
@@ -190,15 +190,9 @@ class Chori(pilasengine.actores.Actor):
       
         self.radio_de_colision = 50
         self.x = - self.pilas.widget.width()/2 
-        altoNave = NaveJusticialista.devolverNave().y + self.pilas.widget.height()/2 - 100
-
-        if(self.pilas.widget.height() - altoNave > altoNave):
-            fin = int(altoNave)
-            inicio =  100
-        else:
-            fin = self.pilas.widget.height()
-            inicio = int(altoNave)
-            
+        fin=self.pilas.widget.height()/2 - 50
+        inicio = - self.pilas.widget.height()/2 + 50
+        print "inicio: " + inicio.__str__() + "fin: " + fin.__str__()
         self.y = pilas.azar(inicio,fin)
                         
         self.hacer(self.pilas.comportamientos.Proyectil,
