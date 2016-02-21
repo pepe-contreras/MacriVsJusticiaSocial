@@ -5,6 +5,7 @@ Created on 8 de feb. de 2016
 '''
 import pilasengine
 from source.actoresMauri import *
+from pilasengine.habilidades import *
 
 pilas = pilasengine.iniciar(1024,768,'Macri Vs Justicia Social')
 

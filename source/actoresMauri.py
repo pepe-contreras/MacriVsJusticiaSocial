@@ -4,6 +4,7 @@ Created on 8 de feb. de 2016
 @author: Martin
 '''
 import pilasengine
+from pilasengine.comportamientos import proyectil
 import math
 from time import *
 from time import sleep
@@ -145,7 +146,10 @@ class NaveJusticialista(pilasengine.actores.Nave):
                 
         if self.poder > 0:
             self.municion = pilasengine.actores.Misil
-            self._habilidades[1]._municion = pilasengine.actores.Misil
+            try:
+                self._habilidades[1]._municion = pilasengine.actores.Misil
+            except:
+                pass
         else:
             self.municion = MisilInvisible
             self._habilidades[1]._municion = MisilInvisible
@@ -195,7 +199,7 @@ class Chori(pilasengine.actores.Actor):
         print "inicio: " + inicio.__str__() + "fin: " + fin.__str__()
         self.y = pilas.azar(inicio,fin)
                         
-        self.hacer(self.pilas.comportamientos.Proyectil,
+        self.hacer(pilasengine.comportamientos.proyectil.Proyectil,
                    velocidad_maxima=5,
                    aceleracion=5,
                    angulo_de_movimiento = 0,                       
