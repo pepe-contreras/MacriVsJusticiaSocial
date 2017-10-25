@@ -4,66 +4,76 @@ Created on 8 de feb. de 2016
 @author: Martin
 '''
 import pilasengine
+from pilasengine.actores import * 
 from pilasengine.comportamientos import proyectil
+from pilasengine.habilidades import seguir_a_otro_actor, puede_explotar_con_humo
 import math
+import sys
 from time import *
-from time import sleep
-from numpy.f2py.auxfuncs import throw_error
 
-
-class Macri(pilasengine.actores.Actor):
+class Macri(actor.Actor):
     '''
     classdocs
     '''
     maurisEnJuego = []
+        
     def __mul__(self,cant):
-        return pilasengine.actores.Actor.__mul__(self,cant)
+        res = pilasengine.actores.Actor.__mul__(self,cant)
+        for macri in res:
+            macri._cir.x,macri._cir.y = macri.x ,macri.y
+        return res
     
     def __init__(self,pilas,*k,**kw):
         '''
         Constructor
         '''
+        self._cir = pilas.fisica.Circulo(0,0,60)
         Macri.maurisEnJuego.append(self)
         self.golpeado = False
         self.pilas = pilas
         pilasengine.actores.Actor.__init__(self,pilas)
         self.imagen = pilas.imagenes.cargar('macri.png')
-        self.radio_de_colision = 50
+        self.radio_de_colision = 40
+        self._cir.radio = self.radio_de_colision
+        self._cir.set_radius(self.radio_de_colision)
         self.naveEnemiga = None
         self.escala= 0.75
         self.agregar_habilidad(self.pilas.habilidades.SeMantieneEnPantalla)
-        self.agregar_habilidad(SeAlejadeOtrosMauirs)
-        self.x = self.y = 0
-        
+#        self.agregar_habilidad(SeAlejadeOtrosMauirs)
+        self.imitar(self._cir)
+    
+       
     def agregarNave(self,nave):
         self.naveEnemiga = nave
-        
+  
     def eliminar(self):
         self.naveEnemiga.puntaje = self.naveEnemiga.puntaje + 1
         if self.golpeado:
-            pilasengine.actores.Actor.eliminar(self)
+            super.eliminar(self)
         else:
+            sonido = self.pilas.sonidos.cargar('audio/basta.wav')
+            sonido.reproducir()
             angulo = self.pilas.azar(0,360)
             vel = self.pilas.azar(1,5)
             if self.x > self.naveEnemiga.x:
                 vel = -vel
             
             if (not self.naveEnemiga is None):
-                angulo = definir_angulo(self,self.naveEnemiga)                       
+                angulo = definir_angulo(self,self.naveEnemiga)
             self.imagen = self.pilas.imagenes.cargar('macribobo.png')
-            self.hacer(self.pilas.comportamientos.Proyectil,
-                   velocidad_maxima=vel,
-                   aceleracion=5,
-                   angulo_de_movimiento = angulo,                       
-                   gravedad=0)
+            self.aprender(pilasengine.habilidades.seguir_a_otro_actor.SeguirAOtroActor,NaveJusticialista.NAVE,velocidad=0.5,inteligencia=0)
+            # self.hacer(self.pilas.comportamientos.Proyectil,
+                   # velocidad_maxima=vel,
+                   # aceleracion=5,
+                   # angulo_de_movimiento = angulo,                        
+                   # gravedad=0)
             self.golpeado = True
-            self.agregar_habilidad(self.pilas.habilidades.PuedeExplotarConHumo)
+            self.agregar_habilidad(PuedeExplotarConHumoySonido)
             
-                        
 def definir_angulo(actorOrigen,actorDestino):
     dx = distancia(actorOrigen.x,actorDestino.x)
     dy = distancia(actorOrigen.y,actorDestino.y)
-    if dx <> 0:
+    if dx != 0:
         return math.degrees(math.atan(dy/dx))
     return 90
 
@@ -90,7 +100,7 @@ class NaveJusticialista(pilasengine.actores.Nave):
         if (not (NaveJusticialista.NAVE is None)):
             raise Exception("No se puede crer mas de una nave Justicialista")
         NaveJusticialista.NAVE = self
-        
+
         self.vida = 10
         self.puntaje = 0
         
@@ -102,11 +112,14 @@ class NaveJusticialista(pilasengine.actores.Nave):
         self.texto = pilas.actores.Texto()
         self.texto.x= 400
         self.texto.y= 300
-        
-        
+        self.chocadoTick = 100
+   
         pilasengine.actores.Nave.__init__(self,pilas)
-        self.aprender(pilas.habilidades.SeMantieneEnPantalla)
+       
+#        self.aprender(pilas.habilidades.SeMantieneEnPantalla)
         self._habilidades[1].cuando_dispara = self.disparar
+        
+        self.aprender(pilas.habilidades.SiempreEnElCentro)
         self.figura_de_colision = pilas.fisica.Rectangulo(0, 0, 80, 120, sensor=True, dinamica=False)
     
     def sumarPuntos(self):
@@ -128,9 +141,14 @@ class NaveJusticialista(pilasengine.actores.Nave):
 
     def quitar_vida(self):
         self.vida = self.vida - 1
+        self.chocadoTick = 0
+        self.imagen = self.pilas.imagenes.cargar_grilla("naveEnllamas.png",2)
         if self.vida <= 0:
+            musica = self.pilas.musica.cargar('audio//gameover.mp3')
+            musica.reproducir()
             for cipayo in self.cipayos:
                 cipayo.eliminar()
+                
             self.texto.texto = "GAME OVER, NEOLIBERALISM WINS!"
             self.texto.x=0
             self.texto.y=0
@@ -138,10 +156,16 @@ class NaveJusticialista(pilasengine.actores.Nave):
             self.eliminar()
     
     def actualizar(self):
-        self.texto.texto = "Vida: " + self.vida.__str__()  + " Poder: " +  self.poder.__str__() + " Puntaje: "  + self.puntaje.__str__()
+        self.texto.texto = "Vida: " + self.vida.__str__()  + " Poder: " +  self.poder.__str__() + " Puntaje: "    + self.puntaje.__str__()
            
-        if  time() - self.tiempoUltimoChori > 5:
-            self.pilas.colisiones.agregar(self, Chori.dameElChori(self.pilas), agarrar_chori)     
+        if self.chocadoTick < 100:
+            self.chocadoTick+=1
+            if self.chocado == 98:
+                self.imagen = self.pilas.imagenes.cargar_grilla("nave.png",2)
+            
+        self.chocado = False
+        if    time() - self.tiempoUltimoChori > 5:
+            self.pilas.colisiones.agregar(self, Chori.dameElChori(self.pilas), agarrar_chori)      
             self.tiempoUltimoChori = time()
                 
         if self.poder > 0:
@@ -170,6 +194,12 @@ class NaveJusticialista(pilasengine.actores.Nave):
             
         pilasengine.actores.Nave.actualizar(self)
         
+    def eliminar(self):
+        musica = self.pilas.musica.cargar('audio/gameover.mp3')
+        musica.reproducir()
+        super.eliminar()
+
+        
 
 class MisilInvisible(pilasengine.actores.Misil):
     def __init__(self, pilas):
@@ -182,7 +212,16 @@ def cuando_colisiona(nave, macri):
         
 def agarrar_chori(nave, chori):
     nave.poder = NaveJusticialista.RECHARG_CHORIPAN + nave.poder
+    sonido = nave.pilas.sonidos.cargar('audio/evita.wav')
+    sonido.reproducir()
     chori.eliminar()
+class PuedeExplotarConHumoySonido(pilasengine.habilidades.puede_explotar_con_humo.PuedeExplotarConHumo):
+    def eliminar_y_explotar(self):
+        self.pilas.sonidos.cargar('audio/merindo.wav').reproducir()
+        explosion = self.crear_explosion()
+        explosion.x = self.receptor.x
+        explosion.y = self.receptor.y
+        pilasengine.actores.Actor.eliminar(self.receptor)
 
 class Chori(pilasengine.actores.Actor):
     CHORI = None
@@ -196,7 +235,6 @@ class Chori(pilasengine.actores.Actor):
         self.x = - self.pilas.widget.width()/2 
         fin=self.pilas.widget.height()/2 - 50
         inicio = - self.pilas.widget.height()/2 + 50
-        print "inicio: " + inicio.__str__() + "fin: " + fin.__str__()
         self.y = pilas.azar(inicio,fin)
                         
         self.hacer(pilasengine.comportamientos.proyectil.Proyectil,
@@ -212,16 +250,17 @@ class Chori(pilasengine.actores.Actor):
             Chori.CHORI = Chori(pilas)
             
         return Chori.CHORI
+
 class SeAlejadeOtrosMauirs(pilasengine.habilidades.Habilidad):
+   
+
     def __init__(self,pilas,*k,**kw):
         pilasengine.habilidades.Habilidad.__init__(self,pilas)
+        self.tiempo= time()
     
     def iniciar(self, receptor):
         pilasengine.habilidades.Habilidad.iniciar(self, receptor)
         self.receptor = receptor
     
     def actualizar(self):
-        pilasengine.habilidades.Habilidad.actualizar(self)    
-        self.receptor.actuaizar =  Macri.actualizar        
-        
-        
+        pilasengine.habilidades.Habilidad.actualizar(self)
